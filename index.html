@@ -292,6 +292,42 @@
             color: rgba(255,255,255,0.8);
         }
 
+        /* ===== Reset button ===== */
+        #reset-area {
+            position: fixed;
+            bottom: 48px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            z-index: 1;
+            animation: sparkle-fade 1.5s ease-out 0.5s both;
+        }
+        .btn-reset {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.02);
+            color: rgba(255,255,255,0.25);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            font-family: inherit;
+            touch-action: manipulation;
+        }
+        .btn-reset:hover {
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.55);
+            border-color: rgba(255,255,255,0.15);
+        }
+        .btn-reset:active {
+            transform: scale(0.93);
+        }
+        .btn-reset .icon { font-size: 0.85rem; }
+
         /* ===== Footer ===== */
         footer {
             position: fixed;
@@ -414,7 +450,11 @@
         </div>
     </div>
 
-    <footer>※ 结果基于设备指纹生成，同一设备固定不变</footer>
+    <div id="reset-area">
+        <button class="btn-reset" id="btn-reset"><span class="icon">⟳</span> 重置结果</button>
+    </div>
+
+    <footer>※ 结果基于设备指纹生成，点击「重置结果」可刷新</footer>
 </div>
 
 <script>
@@ -623,8 +663,10 @@
         resultSlogan:  document.getElementById('result-slogan'),
         btnRetry:      document.getElementById('btn-retry'),
         btnShare:      document.getElementById('btn-share'),
+        btnReset:      document.getElementById('btn-reset'),
     };
 
+    const RESET_KEY = 'nonhuman_reset_count';
     let charging = false;
     let chargeRAF = null;
     let progress = 0;
@@ -632,9 +674,10 @@
 
     let currentAnimal = null;
 
-    // ---- Device-locked result ----
+    // ---- Device-locked result (with optional reset counter) ----
     const fingerprint = getFingerprint();
-    const myAnimal = pickAnimal(fingerprint);
+    const resetCount = parseInt(localStorage.getItem(RESET_KEY) || '0', 10);
+    const myAnimal = pickAnimal(fingerprint + ':' + resetCount);
     currentAnimal = myAnimal;
 
     // ---- Rendering helpers ----
@@ -797,6 +840,25 @@
                 }).catch(() => {});
             }
         });
+        els.btnReset.addEventListener('click', doReset);
+    }
+
+    // ---- Reset ----
+
+    function doReset() {
+        // If currently charging, cancel first
+        cancelCharge();
+        const count = parseInt(localStorage.getItem(RESET_KEY) || '0', 10) + 1;
+        localStorage.setItem(RESET_KEY, String(count));
+        currentAnimal = pickAnimal(fingerprint + ':' + count);
+        showInitial();
+        // Visual feedback
+        els.btnReset.style.transform = 'scale(0.93) rotate(180deg)';
+        els.btnReset.style.opacity = '0.5';
+        setTimeout(() => {
+            els.btnReset.style.transform = '';
+            els.btnReset.style.opacity = '';
+        }, 300);
     }
 
     // ---- Init ----
